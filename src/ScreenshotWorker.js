@@ -5,6 +5,8 @@ class ScreenshotWorker {
     constructor(tests, options) {
         this.tests = tests;
         this.options = options;
+        this.puppeteerOptions = options.puppeteerOptions;
+        this.pageOptions = options.pageOptions;
         this.dir = options.dir;
 
         !fs.existsSync(this.dir) ? fs.mkdirSync(this.dir) : null;
@@ -35,15 +37,11 @@ class ScreenshotWorker {
     }
 
     async run() {
-        const {puppeteer: op} = this.options;
-        const browser = await puppeteer.launch({
-            headless: op.headless !== false,
-            args: op.args || [],
-        });
+        const {puppeteerOptions, pageOptions = {}} = this;
+        const browser = await puppeteer.launch(puppeteerOptions);
 
         const page = await browser.newPage();
-
-        op.viewport && await page.setViewport(op.viewport);
+        pageOptions.viewport && await page.setViewport(pageOptions.viewport);
 
         this.browser = browser;
         this.page = page;

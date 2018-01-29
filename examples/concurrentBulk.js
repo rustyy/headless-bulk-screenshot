@@ -30,9 +30,10 @@ const tasks = [
 const options = {
     dir: 'screenshots',
     filePrefix: '',
-    puppeteer: {
+    puppeteerOptions: {
         args: ['--no-sandbox'],
     },
+    pageOptions: {}
 };
 
 runner(tasks, options).then(() => {
