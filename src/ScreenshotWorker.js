@@ -38,13 +38,8 @@ class ScreenshotWorker {
 
     async run() {
         const {puppeteerOptions, pageOptions = {}} = this;
-        const browser = await puppeteer.launch(puppeteerOptions);
-
-        const page = await browser.newPage();
-        pageOptions.viewport && await page.setViewport(pageOptions.viewport);
-
-        this.browser = browser;
-        this.page = page;
+        this.browser = await puppeteer.launch(puppeteerOptions);
+        this.page = await this._setupPage();
 
         return new Promise(async (resolve) => {
             for (let test of this.tests) {
@@ -57,6 +52,21 @@ class ScreenshotWorker {
 
             resolve();
         });
+    }
+
+    async _setupPage() {
+        const {browser} = this;
+        const {pageOptions = {}} = this;
+        const page = await browser.newPage();
+
+        if (typeof pageOptions === 'function') {
+            await pageOptions(page);
+        } else {
+            pageOptions.viewport && await page.setViewport(pageOptions.viewport);
+            pageOptions.userAgent && await page.setUserAgent(pageOptions.userAgent);
+        }
+
+        return page;
     }
 
     _buildPath(name) {
