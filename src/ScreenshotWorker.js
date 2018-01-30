@@ -2,12 +2,17 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 class ScreenshotWorker {
-    constructor(tests, options) {
-        this.tests = tests;
+    constructor(tasks, options) {
+        this.tasks = tasks;
         this.options = options;
         this.puppeteerOptions = options.puppeteerOptions;
         this.pageOptions = options.pageOptions;
         this.dir = options.dir;
+        this.errors = [];
+        this.log = [];
+
+        this._printLog = this._printLog.bind(this);
+        this._cleanUp = this._cleanUp.bind(this);
 
         !fs.existsSync(this.dir) ? fs.mkdirSync(this.dir) : null;
     }
@@ -37,20 +42,30 @@ class ScreenshotWorker {
     }
 
     async run() {
-        const {puppeteerOptions, pageOptions = {}} = this;
+        const {_printLog, _cleanUp, puppeteerOptions, pageOptions = {}} = this;
         this.browser = await puppeteer.launch(puppeteerOptions);
         this.page = await this._setupPage();
 
         return new Promise(async (resolve) => {
-            for (let test of this.tests) {
-                await this._screenshot(test);
+            for (let task of this.tasks) {
+                await this._screenshot(task);
             }
 
-            await this.browser.close();
-            this.page = null;
-            this.browser = null;
-
+            await _cleanUp();
+            _printLog();
             resolve();
+        });
+    }
+
+    async _cleanUp() {
+        await this.browser.close();
+        this.page = null;
+        this.browser = null;
+    }
+
+    _printLog() {
+        this.log.forEach((entry) => {
+            console.log(entry);
         });
     }
 
@@ -78,6 +93,8 @@ class ScreenshotWorker {
     }
 
     _screenshot(task) {
+        let {log} = this;
+
         return new Promise(async (resolve, reject) => {
             const {page} = this;
             const {url, before, name, waitUntil, waitFor} = task;
@@ -90,11 +107,13 @@ class ScreenshotWorker {
                 typeof before === 'function' ? await before(page) : null;
                 await page.screenshot({path: path, fullPage: true});
 
-                console.log(`-- ${name} -> ${path}`);
+                log.push(`SUCCESS - Screenshot created. [${name}] -> ${url} -> ${path}`);
                 resolve();
             } catch (err) {
-                reject('screenshot could not be saved');
+                reject(`ERROR - Screenshot could not be saved. [${name}] -> ${url} -> ${path}`);
             }
+        }).catch((e) => {
+            log.push(e);
         });
     }
 }
