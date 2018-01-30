@@ -18,7 +18,7 @@ class ScreenshotWorker {
     }
 
     set dir(val) {
-        this._dir = val || `${process.cwd()}/screenshots`;
+        this._dir = fs.realpathSync(val || 'screenshots');
     }
 
     get dir() {
@@ -110,6 +110,7 @@ class ScreenshotWorker {
                 log.push(`SUCCESS - Screenshot created. [${name}] -> ${url} -> ${path}`);
                 resolve();
             } catch (err) {
+                console.error(err);
                 reject(`ERROR - Screenshot could not be saved. [${name}] -> ${url} -> ${path}`);
             }
         }).catch((e) => {
