@@ -115,7 +115,10 @@ class ScreenshotWorker {
                 } else {
                     let elementScreenshot = typeof before === 'function' ? await before(page) : page;
 
-                    if (elementScreenshot === page || typeof elementScreenshot.screenshot === 'undefined') {
+                    if (elementScreenshot === page ||
+                        typeof elementScreenshot === 'undefined' ||
+                        typeof elementScreenshot.screenshot === 'undefined'
+                    ) {
                         await page.screenshot({path: path, fullPage: true});
                     } else {
                         await elementScreenshot.screenshot({path: path});
