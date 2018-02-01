@@ -43,18 +43,24 @@ class ScreenshotWorker {
 
     async run() {
         const {_printLog, _cleanUp, puppeteerOptions, pageOptions = {}} = this;
-        this.browser = await puppeteer.launch(puppeteerOptions);
-        this.page = await this._setupPage();
 
-        return new Promise(async (resolve) => {
-            for (let task of this.tasks) {
-                await this._screenshot(task);
-            }
+        try {
+            this.browser = await puppeteer.launch(puppeteerOptions);
+            this.page = await this._setupPage();
 
-            await _cleanUp();
-            _printLog();
-            resolve();
-        });
+            return new Promise(async (resolve) => {
+                for (let task of this.tasks) {
+                    await this._screenshot(task);
+                }
+
+                await _cleanUp();
+                _printLog();
+                resolve();
+            });
+        } catch (err) {
+            console.error(err);
+            return Promise.reject(err);
+        }
     }
 
     async _cleanUp() {
@@ -107,8 +113,13 @@ class ScreenshotWorker {
                 if (typeof custom === 'function') {
                     await custom(page);
                 } else {
-                    typeof before === 'function' ? await before(page) : null;
-                    await page.screenshot({path: path, fullPage: true});
+                    let elementScreenshot = typeof before === 'function' ? await before(page) : page;
+
+                    if (elementScreenshot === page || typeof elementScreenshot.screenshot === 'undefined') {
+                        await page.screenshot({path: path, fullPage: true});
+                    } else {
+                        await elementScreenshot.screenshot({path: path});
+                    }
                 }
 
                 log.push(`SUCCESS - Screenshot created. [${name}] -> ${url} -> ${path}`);
