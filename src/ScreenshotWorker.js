@@ -97,15 +97,19 @@ class ScreenshotWorker {
 
         return new Promise(async (resolve, reject) => {
             const {page} = this;
-            const {url, before, name, waitUntil, waitFor} = task;
+            const {url, custom, before, name, waitUntil, waitFor} = task;
             const path = this._buildPath(name);
 
             try {
                 url ? await page.goto(task.url, {waitUntil: waitUntil || 'load'}) : null;
                 waitFor && await page.waitFor(waitFor);
 
-                typeof before === 'function' ? await before(page) : null;
-                await page.screenshot({path: path, fullPage: true});
+                if (typeof custom === 'function') {
+                    await custom(page);
+                } else {
+                    typeof before === 'function' ? await before(page) : null;
+                    await page.screenshot({path: path, fullPage: true});
+                }
 
                 log.push(`SUCCESS - Screenshot created. [${name}] -> ${url} -> ${path}`);
                 resolve();
