@@ -107,29 +107,32 @@ class ScreenshotWorker {
             const path = this._buildPath(name);
 
             try {
+                let start = (new Date()).getTime();
                 url ? await page.goto(task.url, {waitUntil: waitUntil || 'load'}) : null;
                 waitFor && await page.waitFor(waitFor);
 
-                if (typeof custom === 'function') {
-                    await custom(page);
-                } else {
-                    let elementScreenshot = typeof before === 'function' ? await before(page) : page;
+                let elementScreenshot = typeof before === 'function' ? await before(page) : page;
 
-                    if (elementScreenshot === page ||
-                        typeof elementScreenshot === 'undefined' ||
-                        typeof elementScreenshot.screenshot === 'undefined'
-                    ) {
-                        await page.screenshot({path: path, fullPage: true});
-                    } else {
-                        await elementScreenshot.screenshot({path: path});
-                    }
+                if (elementScreenshot === page ||
+                    typeof elementScreenshot === 'undefined' ||
+                    typeof elementScreenshot.screenshot === 'undefined'
+                ) {
+                    await page.screenshot({path: path, fullPage: true});
+                } else {
+                    await elementScreenshot.screenshot({path: path});
                 }
 
-                log.push(`SUCCESS - Screenshot created. [${name}] -> ${url} -> ${path}`);
+                let stop = (new Date()).getTime();
+                console.log(`INFO\t[${name}] took ${(stop - start) / 1000}s`);
+
+                log.push(`SUCCESS\tScreenshot created`);
+                log.push(`\t\tname: \t${name}`);
+                log.push(`\t\turl: \t${url}`);
+                log.push(`\t\tpath: \t${path}`);
                 resolve();
             } catch (err) {
                 console.error(err);
-                reject(`ERROR - Screenshot could not be saved. [${name}] -> ${url} -> ${path}`);
+                reject(`ERROR \tScreenshot could not be saved\n\t\tname:\t${name}\n\t\turl:\t${url}\n\t\tpath:\t${path}\n`);
             }
         }).catch((e) => {
             log.push(e);
