@@ -1,12 +1,13 @@
 {
   "name": "headless-bulk-screenshot",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "",
   "main": "./dist/index.js",
   "scripts": {
     "build": "babel src --out-dir dist",
     "prepublish": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --exec npm run build"
   },
   "author": {
     "name": "Felix Hofmann",
@@ -20,6 +21,11 @@
   "engines": {
     "node": ">=6.4.0"
   },
+  "nodemonConfig": {
+    "ignore": [
+      "dist/*"
+    ]
+  },
   "dependencies": {
     "babel-runtime": "^6.26.0",
     "puppeteer": "^1.0.0"
@@ -28,6 +34,7 @@
     "babel-cli": "^6.26.0",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-es2015": "^6.24.1",
-    "babel-preset-es2017": "^6.24.1"
+    "babel-preset-es2017": "^6.24.1",
+    "nodemon": "^1.14.12"
   }
 }

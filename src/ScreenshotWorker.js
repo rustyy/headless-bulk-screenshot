@@ -13,6 +13,7 @@ class ScreenshotWorker {
 
         this._printLog = this._printLog.bind(this);
         this._cleanUp = this._cleanUp.bind(this);
+        this._pageScroll = this._pageScroll.bind(this);
 
         !fs.existsSync(this.dir) ? fs.mkdirSync(this.dir) : null;
     }
@@ -98,8 +99,20 @@ class ScreenshotWorker {
         return `${dir}/${prefix}${name}${suffix}.png`;
     }
 
+    async _pageScroll() {
+        const {page} = this;
+        const initHeight = await page.evaluate(() => document.body.scrollHeight);
+        await page.evaluate((h) => window.scrollBy(0, h), initHeight);
+        await page.waitFor(500);
+        const currentHeight = await page.evaluate(() => document.body.scrollHeight);
+
+        if (currentHeight > initHeight) {
+            await this._pageScroll();
+        }
+    }
+
     _screenshot(task) {
-        let {log} = this;
+        let {log, _pageScroll} = this;
 
         return new Promise(async (resolve, reject) => {
             const {page} = this;
@@ -108,7 +121,12 @@ class ScreenshotWorker {
 
             try {
                 let start = (new Date()).getTime();
-                url ? await page.goto(task.url, {waitUntil: waitUntil || 'load'}) : null;
+
+                if (url) {
+                    await page.goto(task.url, {waitUntil: waitUntil || 'load'});
+                    await _pageScroll();
+                }
+
                 waitFor && await page.waitFor(waitFor);
 
                 let elementScreenshot = typeof before === 'function' ? await before(page) : page;
