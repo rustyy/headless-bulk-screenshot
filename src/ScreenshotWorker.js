@@ -109,6 +109,11 @@ class ScreenshotWorker {
         if (currentHeight > initHeight) {
             await this._pageScroll();
         }
+
+        // Scroll back to top
+        await page.evaluate(() => {
+            document.body.scrollTop = document.documentElement.scrollTop = 0;
+        });
     }
 
     _screenshot(task) {
