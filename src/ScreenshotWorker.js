@@ -14,6 +14,7 @@ class ScreenshotWorker {
         this._printLog = this._printLog.bind(this);
         this._cleanUp = this._cleanUp.bind(this);
         this._pageScroll = this._pageScroll.bind(this);
+        this._timeout = this._timeout.bind(this);
 
         !fs.existsSync(this.dir) ? fs.mkdirSync(this.dir) : null;
     }
@@ -99,15 +100,30 @@ class ScreenshotWorker {
         return `${dir}/${prefix}${name}${suffix}.png`;
     }
 
-    async _pageScroll() {
+    async _pageScroll(ms = 500) {
         const {page} = this;
-        const initHeight = await page.evaluate(() => document.body.scrollHeight);
-        await page.evaluate((h) => window.scrollBy(0, h), initHeight);
-        await page.waitFor(500);
-        const currentHeight = await page.evaluate(() => document.body.scrollHeight);
 
-        if (currentHeight > initHeight) {
-            await this._pageScroll();
+        await this._timeout(ms);
+
+        const initial = await page.evaluate(() => {
+            return {
+                scrollHeight: document.body.scrollHeight,
+                innerHeight: window.innerHeight
+            }
+        });
+
+        let scrollMax = Math.ceil(initial.scrollHeight / initial.innerHeight);
+
+        while (scrollMax > 0) {
+            await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+            await this._timeout(ms);
+            scrollMax--;
+        }
+
+        const currentScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+
+        if (currentScrollHeight > initial.scrollHeight) {
+            await this._pageScroll(ms);
         }
 
         // Scroll back to top
@@ -116,12 +132,16 @@ class ScreenshotWorker {
         });
     }
 
+    async _timeout(ms = 500) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
     _screenshot(task) {
         let {log, _pageScroll} = this;
 
         return new Promise(async (resolve, reject) => {
             const {page} = this;
-            const {url, custom, before, name, waitUntil, waitFor} = task;
+            const {url, before, name, waitUntil, waitFor} = task;
             const path = this._buildPath(name);
 
             try {
@@ -129,12 +149,17 @@ class ScreenshotWorker {
 
                 if (url) {
                     await page.goto(task.url, {waitUntil: waitUntil || 'load'});
-                    await _pageScroll();
+
+                    if (task.pageScroll !== false) {
+                        await _pageScroll(task.pageScrollInterval || 500);
+                    }
                 }
 
                 waitFor && await page.waitFor(waitFor);
 
                 let elementScreenshot = typeof before === 'function' ? await before(page) : page;
+
+                await this._timeout();
 
                 if (elementScreenshot === page ||
                     typeof elementScreenshot === 'undefined' ||
